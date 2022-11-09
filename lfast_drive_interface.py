@@ -56,10 +56,6 @@ def get_velocity_feedback(client):
     result = client.read_holding_registers(address=REG_REAL_SPEED[0],count=REG_REAL_SPEED[1], unit=DRIVER_NODEID)
     if not result.isError():
         raw_units = result.registers[0] | result.registers[1] << 16
-        # velocity_iu = raw_units
-        # bits = 32
-        # if (velocity_iu & (1 << (bits - 1))) != 0: # if sign bit is set e.g., 8bit: 128-255
-        #     velocity_iu = velocity_iu - (1 << bits)        # compute negative value
         velocity_iu = get_twos_comp(val=raw_units, bits=32)
         velocity_rpm = ( ( velocity_iu * 1875 ) / 10000 ) / 512
         print(f"  Velocity (RPM): {velocity_rpm}")
@@ -75,9 +71,6 @@ def get_current_feedback(client):
     if not result.isError():
         raw_units = result.registers[0]
         current_iu = raw_units
-        # bits = 16
-        # if (current_iu & (1 << (bits - 1))) != 0: # if sign bit is set e.g., 8bit: 128-255
-        #     current_iu = current_iu - (1 << bits)        # compute negative value
         current_iu = get_twos_comp(val=raw_units, bits=16)
         drive_i_peak = 36;
         current_conversion_factor = (2048/drive_i_peak)/1.414;
@@ -94,9 +87,6 @@ def get_position_feedback(client):
     result = client.read_holding_registers(address=REG_POS_ACTUAL[0],count=REG_POS_ACTUAL[1], unit=DRIVER_NODEID)
     if not result.isError():
         raw_counts = result.registers[0] | result.registers[1] << 16
-        # bits = 32
-        # if (raw_counts & (1 << (bits - 1))) != 0: # if sign bit is set e.g., 8bit: 128-255
-        #     raw_counts = raw_counts - (1 << bits)        # compute negative value
         encoder_counts = get_twos_comp(val=raw_counts, bits=32)
         print(f"  Pos Actual (Counts): {encoder_counts}")
     else:
