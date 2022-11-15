@@ -7,13 +7,16 @@ Files:
 `lfast_drive_command.py` contains code to demonstrate the use of the functions, by calling them in response to user input.
 
 This is the list of commands:
-DRV: (int)	select which drive to interface with
-CMD: (int)	select which command to execute
-VAL: (float)	the value that goes along with the command
+    DRV: (int)	select which drive to interface with
+    
+    CMD: (int)	select which command to execute
+    
+    VAL: (float)	the value that goes along with the command
 
-DRV	CMD	FUNCTION		VALUE	RESULT			DESC
-1		drive 1
-2		drive 2
+
+    DRV	CMD	FUNCTION		VALUE	RESULT			DESC
+    1		drive 1
+    2		drive 2
 	
 	1	set motor mode to	0	Position Mode (1)
 				        	1	Speed Mode (3)
