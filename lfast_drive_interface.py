@@ -14,7 +14,8 @@ from pymodbus.transaction import (
     ModbusTlsFramer,
 )
 
-DRIVER_PORT = 'COM4'
+# DRIVER_PORT = 'COM4'
+DRIVER_PORT = 'COM9'
 # DRIVER_BAUDRATE = 19200
 # DRIVER_BAUDRATE = 38400
 DRIVER_BAUDRATE = 115200
