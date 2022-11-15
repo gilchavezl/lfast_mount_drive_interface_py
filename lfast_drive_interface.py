@@ -31,8 +31,8 @@ REG_POS_ACTUAL = [ 0x3700, 2 ]
 REG_REAL_SPEED = [ 0x3B00, 2 ]
 REG_REAL_CURR = [ 0x3E00, 1 ]
 
-# REG_CONTROLWORD = [ 0x3100, 1 ]
-# REG_OP_MOED = [ 0x3500, 1 ]
+REG_CONTROLWORD = [ 0x3100, 1 ]
+REG_OP_MODE = [ 0x3500, 1 ]
 # REG_INVERT_DIR = [ 0x4700, 1 ]
 # REG_TARGET_POS = [ 0x4000, 2 ]
 REG_TARGET_SPEED = [ 0x6F00, 2 ]
@@ -104,15 +104,16 @@ def set_velocity_setpoint(client, setpoint_rpm):
 
 
 def set_torque_setpoint(client, setpoint_torque):
-    client.write_registers(address=REG_TARGET_TORQUE[0], values=setpoint_torque, unit=DRIVER_NODEID)
+    torque_value = int( setpoint_torque * 10 )
+    client.write_registers(address=REG_TARGET_TORQUE[0], values=torque_value, unit=DRIVER_NODEID)
 
 
-def set_motor_mode():
-    pass
+def set_motor_mode(client, set_mode):
+    client.write_registers(address=REG_OP_MODE[0], values=set_mode, unit=DRIVER_NODEID)
 
 
-def set_motor_state():
-    pass
+def set_motor_state(client, set_state):
+    client.write_registers(address=REG_CONTROLWORD[0], values=set_state, unit=DRIVER_NODEID)
 
 
 def start_client():
