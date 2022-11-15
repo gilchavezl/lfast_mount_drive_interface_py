@@ -37,7 +37,7 @@ REG_REAL_CURR = [ 0x3E00, 1 ]
 # REG_TARGET_POS = [ 0x4000, 2 ]
 REG_TARGET_SPEED = [ 0x6F00, 2 ]
 # REG_MAX_SPEED = [ 0x4900, 1 ]
-# REG_TARGET_TORQUE = [ 0x3C00, 1 ]
+REG_TARGET_TORQUE = [ 0x3C00, 1 ]
 
 POLL_COUNT = 100
 POLL_INTERVAL = 0.025
@@ -97,18 +97,14 @@ def get_position_feedback(client):
 
 def set_velocity_setpoint(client, setpoint_rpm):
     setpoint_units =  int( ( ( setpoint_rpm * 512 ) * 10000 ) / 1875 )
-    # print(f"Velocity Setpoint (RPM): {setpoint_rpm}")
-    # print(f"Velocity Setpoint (IU): {setpoint_units}")
     register_high_word = setpoint_units & 0xFFFF
     register_low_word = ( setpoint_units & 0xFFFF0000 ) >> 16
-#     register_values[0] = (uint16_t) reg_value & 0xFFFF;
-#   register_values[1] = (uint16_t) ((reg_value & 0xFFFF0000) >> 16);
     register_values = [register_high_word, register_low_word]
     client.write_registers(address=REG_TARGET_SPEED[0], values=register_values, unit=DRIVER_NODEID)
 
 
-def set_torque_setpoint():
-    pass
+def set_torque_setpoint(client, setpoint_torque):
+    client.write_registers(address=REG_TARGET_TORQUE[0], values=setpoint_torque, unit=DRIVER_NODEID)
 
 
 def set_motor_mode():
