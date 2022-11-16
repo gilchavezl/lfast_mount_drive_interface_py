@@ -2,6 +2,7 @@
 This repository contains software for testing communication with a Servo Motor Drive that controls the motors on the telescope's tracking mount.
 
 Files:
+
 `lfast_drive_interface.py` contains functions to read and write the Kinco Servo Drive registers related to a select set of functions.
 
 `lfast_drive_command.py` contains code to demonstrate the use of the functions, by calling them in response to user input.
@@ -33,3 +34,6 @@ This is the list of commands:
 |      |                    |1      |Get Position                  |
 |      |                    |2      |Get Velocity                  |
 |      |                    |3      |Get Current                   |
+
+
+Use `Ctrl+C` to exit.

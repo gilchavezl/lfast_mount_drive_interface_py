@@ -52,7 +52,7 @@ def process_input(client):
         else:
             motor_set_mode = Motor_Mode.POSITION_MODE.value
         print(f'Motor Mode input: {motor_set_mode}')
-        lfast_drive_interface.set_motor_mode(client, motor_set_mode)
+        lfast_drive_interface.set_motor_mode(client, drv, motor_set_mode)
     elif cmd == 2:
         # set motor state (disable, enable, e-stop, power on)
         state_input = int(val)
@@ -67,18 +67,18 @@ def process_input(client):
         else:
             motor_set_state = Motor_State.DISABLED.value
         print(f'Motor State input: {motor_set_state}')
-        lfast_drive_interface.set_motor_state(client, motor_set_state)
+        lfast_drive_interface.set_motor_state(client, drv, motor_set_state)
     elif cmd == 3:
         # set target speed
         motor_target_speed = val
         # set_velocity_setpoint(client, velocity_setpoint)
-        lfast_drive_interface.set_velocity_setpoint(client, motor_target_speed)
+        lfast_drive_interface.set_velocity_setpoint(client, drv, motor_target_speed)
         print(f'Target speed: {motor_target_speed}')
     elif cmd == 4:
         # set target torque
         motor_target_torque = val
         print(f'Target torque: {motor_target_torque}')
-        lfast_drive_interface.set_torque_setpoint(client, motor_target_torque)
+        lfast_drive_interface.set_torque_setpoint(client, drv, motor_target_torque)
     elif cmd == 6:
         # set max speed
         pass
@@ -87,18 +87,18 @@ def process_input(client):
         param = int(val)
         if param == 0:
             # get all
-            result_code = lfast_drive_interface.get_position_feedback(client)
-            result_code = lfast_drive_interface.get_velocity_feedback(client)
-            result_code = lfast_drive_interface.get_current_feedback(client)
+            result_code = lfast_drive_interface.get_position_feedback(client, drv)
+            result_code = lfast_drive_interface.get_velocity_feedback(client, drv)
+            result_code = lfast_drive_interface.get_current_feedback(client, drv)
         elif param == 1:
             # get position feedback
-            result_code = lfast_drive_interface.get_position_feedback(client)
+            result_code = lfast_drive_interface.get_position_feedback(client, drv)
         elif param == 2:
             # get velocity feedback
-            result_code = lfast_drive_interface.get_velocity_feedback(client)
+            result_code = lfast_drive_interface.get_velocity_feedback(client, drv)
         elif param == 3:
             # get current feedback
-            result_code = lfast_drive_interface.get_current_feedback(client)
+            result_code = lfast_drive_interface.get_current_feedback(client, drv)
         else:
             # 
             pass

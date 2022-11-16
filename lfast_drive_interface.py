@@ -52,9 +52,9 @@ def get_twos_comp(val, bits):
     return val
 
 
-def get_velocity_feedback(client):
+def get_velocity_feedback(client, drive_id):
     result_code = 0
-    result = client.read_holding_registers(address=REG_REAL_SPEED[0],count=REG_REAL_SPEED[1], unit=DRIVER_NODEID)
+    result = client.read_holding_registers(address=REG_REAL_SPEED[0],count=REG_REAL_SPEED[1], unit=drive_id)
     if not result.isError():
         raw_units = result.registers[0] | result.registers[1] << 16
         velocity_iu = get_twos_comp(val=raw_units, bits=32)
@@ -66,9 +66,9 @@ def get_velocity_feedback(client):
     return result_code
 
 
-def get_current_feedback(client):
+def get_current_feedback(client, drive_id):
     result_code = 0
-    result = client.read_holding_registers(address=REG_REAL_CURR[0],count=REG_REAL_CURR[1], unit=DRIVER_NODEID)
+    result = client.read_holding_registers(address=REG_REAL_CURR[0],count=REG_REAL_CURR[1], unit=drive_id)
     if not result.isError():
         raw_units = result.registers[0]
         current_iu = raw_units
@@ -83,9 +83,9 @@ def get_current_feedback(client):
     return result_code
 
 
-def get_position_feedback(client):
+def get_position_feedback(client, drive_id):
     result_code = 0
-    result = client.read_holding_registers(address=REG_POS_ACTUAL[0],count=REG_POS_ACTUAL[1], unit=DRIVER_NODEID)
+    result = client.read_holding_registers(address=REG_POS_ACTUAL[0],count=REG_POS_ACTUAL[1], unit=drive_id)
     if not result.isError():
         raw_counts = result.registers[0] | result.registers[1] << 16
         encoder_counts = get_twos_comp(val=raw_counts, bits=32)
@@ -96,25 +96,25 @@ def get_position_feedback(client):
     return result_code
 
 
-def set_velocity_setpoint(client, setpoint_rpm):
+def set_velocity_setpoint(client, drive_id, setpoint_rpm):
     setpoint_units =  int( ( ( setpoint_rpm * 512 ) * 10000 ) / 1875 )
     register_high_word = setpoint_units & 0xFFFF
     register_low_word = ( setpoint_units & 0xFFFF0000 ) >> 16
     register_values = [register_high_word, register_low_word]
-    client.write_registers(address=REG_TARGET_SPEED[0], values=register_values, unit=DRIVER_NODEID)
+    client.write_registers(address=REG_TARGET_SPEED[0], values=register_values, unit=drive_id)
 
 
-def set_torque_setpoint(client, setpoint_torque):
+def set_torque_setpoint(client, drive_id, setpoint_torque):
     torque_value = int( setpoint_torque * 10 )
-    client.write_registers(address=REG_TARGET_TORQUE[0], values=torque_value, unit=DRIVER_NODEID)
+    client.write_registers(address=REG_TARGET_TORQUE[0], values=torque_value, unit=drive_id)
 
 
-def set_motor_mode(client, set_mode):
-    client.write_registers(address=REG_OP_MODE[0], values=set_mode, unit=DRIVER_NODEID)
+def set_motor_mode(client, drive_id, set_mode):
+    client.write_registers(address=REG_OP_MODE[0], values=set_mode, unit=drive_id)
 
 
-def set_motor_state(client, set_state):
-    client.write_registers(address=REG_CONTROLWORD[0], values=set_state, unit=DRIVER_NODEID)
+def set_motor_state(client, drive_id, set_state):
+    client.write_registers(address=REG_CONTROLWORD[0], values=set_state, unit=drive_id)
 
 
 def start_client():
