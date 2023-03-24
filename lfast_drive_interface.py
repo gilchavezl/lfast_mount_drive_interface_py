@@ -1,3 +1,5 @@
+# test interface code
+
 import serial
 # import pymodbus
 # from pymodbus import client as mbc
@@ -6,19 +8,19 @@ import time
 
 from pymodbus.client.sync import ModbusSerialClient
 
-from pymodbus.transaction import (
-    ModbusAsciiFramer,
-    ModbusBinaryFramer,
-    ModbusRtuFramer,
-    ModbusSocketFramer,
-    ModbusTlsFramer,
-)
+# from pymodbus.transaction import(
+#     ModbusAsciiFramer,
+#     ModbusBinaryFramer,
+#     ModbusRtuFramer,
+#     ModbusSocketFramer,
+#     ModbusTlsFramer
+# )
 
-# DRIVER_PORT = 'COM4'
-DRIVER_PORT = 'COM9'
-# DRIVER_BAUDRATE = 19200
+DRIVER_PORT = 'COM5'
+# DRIVER_PORT = 'COM9'
+DRIVER_BAUDRATE = 19200
 # DRIVER_BAUDRATE = 38400
-DRIVER_BAUDRATE = 115200
+# DRIVER_BAUDRATE = 115200
 DRIVER_BYTESIZE = 8
 DRIVER_PARITY = 'N'
 DRIVER_STOPBITS = 1
@@ -101,12 +103,18 @@ def set_velocity_setpoint(client, drive_id, setpoint_rpm):
     register_high_word = setpoint_units & 0xFFFF
     register_low_word = ( setpoint_units & 0xFFFF0000 ) >> 16
     register_values = [register_high_word, register_low_word]
+    # print(f'REGISTERS: {register_values}')
     client.write_registers(address=REG_TARGET_SPEED[0], values=register_values, unit=drive_id)
 
 
 def set_torque_setpoint(client, drive_id, setpoint_torque):
     torque_value = int( setpoint_torque * 10 )
-    client.write_registers(address=REG_TARGET_TORQUE[0], values=torque_value, unit=drive_id)
+    torque_units = get_twos_comp(torque_value, 16)
+    register_high_word = torque_units & 0xFFFF
+    # print(f'TORQUE: {torque_value}')
+    # print(f'2s comp: {torque_units}')
+    # print(f'TEST: {register_high_word}')
+    client.write_registers(address=REG_TARGET_TORQUE[0], values=register_high_word, unit=drive_id)
 
 
 def set_motor_mode(client, drive_id, set_mode):
@@ -126,7 +134,7 @@ def start_client():
         # Common optional paramers:
         #    modbus_decoder=ClientDecoder,
         # framer=ModbusRtuFramer,
-        #    timeout=10,
+        # timeout=0.015,
         #    retries=3,
         #    retry_on_empty=False,
         #    close_comm_on_error=False,
