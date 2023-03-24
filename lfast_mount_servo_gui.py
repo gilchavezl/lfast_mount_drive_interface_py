@@ -1,5 +1,7 @@
 import sys, time, logging
+import enum
 import serial
+import lfast_drive_interface
 
 from PySide6.QtCore import *
 from PySide6.QtWidgets import *
@@ -16,18 +18,33 @@ logging.basicConfig(
 
 APP_VERSION = 0.1
 
-CONTROLLER_PORT = 'COM3'
+SERIAL_ADAPTER_PORT = 'COM5'
 
 controller_found = True
 try:
     # ser_controller = serial.Serial(CONTROLLER_PORT, 57600, timeout=0)
-    time.sleep(1)
-    logging.info(f'Port {CONTROLLER_PORT} opened succesfully.')
+    modbus_client = lfast_drive_interface.start_client()
+    time.sleep(5)
+    logging.info(f'Port {SERIAL_ADAPTER_PORT} opened succesfully.')
     controller_found = True
 except Exception as e:
     logging.warning(f'Error occurred while opening serial port.\nException: {e}')
     controller_found = False
     sys.exit( 1 )
+
+
+class Motor_State(enum.Enum):
+    DISABLED = 0x02
+    ENABLED = 0x06
+    E_STOP = 0x0B
+    POWER_ON = 0x0F
+
+
+class Motor_Mode(enum.Enum):
+    POSITION_MODE = 1
+    SPEED_MODE = 3
+    TORQUE_MODE = 4
+    HOME_MODE = 6
 
 
 class MountInterface():
@@ -41,25 +58,37 @@ class MountInterface():
     def set_param(self, param, value):
         if(param == 'm'):
             self.mode = value
-            serialCommand(0, value)
+            driveCommand(1, value)
         elif(param == 's'):
             self.speed_setpoint = value
-            # serialCommand(1, value)
         elif(param == 't'):
             self.torque_setpoint = value
-            # serialCommand(2, value)
         elif(param == 'x'):
             self.max_speed = value
-            serialCommand(3, value)
+            driveCommand(6, value)
         elif(param == 'c'):
             self.control_word = value
-            serialCommand(4, value)
+            driveCommand(2, value)
 
     def update_speed_setpoint(self, direction):
-        pass
+        if(direction == 'u'):
+            speed = self.speed_setpoint
+            driveCommand(3, speed)
+        elif(direction == 'd'):
+            speed = self.speed_setpoint * -1
+            driveCommand(3, speed)
+        elif(direction == 'i'):
+            pass
 
     def update_target_setpoint(self, direction):
-        pass
+        if(direction == 'u'):
+            torque = self.torque_setpoint
+            driveCommand(4, torque)
+        elif(direction == 'd'):
+            torque = self.torque_setpoint * -1
+            driveCommand(4, torque)
+        elif(direction == 'i'):
+            pass
 
 
 mount = MountInterface()
@@ -68,10 +97,10 @@ mount = MountInterface()
 def modeHandler():
     if(modeSpeedButton.isChecked()):
         logging.debug('Set mode to Speed Control')
-        mount.set_param('m', 0)
+        mount.set_param('m', 1)
     elif(modeTorqueButton.isChecked()):
         logging.debug('Set mode to Torque Control')
-        mount.set_param('m', 1)
+        mount.set_param('m', 2)
 
 
 def speedHandler():
@@ -93,31 +122,81 @@ def maxSpeedHandler():
 
 
 def upPressHandler():
-    logging.debug(f'Up Button pressed')
+    logging.debug(f'\nUP BUTTON PRESSED\n')
     mount.update_speed_setpoint('u')
-    mount.set_param('c', 0)
+    mount.set_param('c', 2)
 
 
 def downPressHandler():
     logging.debug(f'Down Button pressed')
     mount.update_speed_setpoint('d')
-    mount.set_param('c', 0)
+    mount.set_param('c', 2)
 
 
 def upReleaseHandler():
-    logging.debug(f'Up Button released')
-    mount.set_param('s', 0)
+    logging.debug(f'\nUP BUTTON RELEASED\n')
+    mount.set_param('c', 1)
 
 
 def downReleaseHandler():
     logging.debug(f'Down Button released')
-    mount.set_param('s', 0)
+    mount.set_param('c', 1)
 
 
-def serialCommand(param, value):
+def driveCommand(param, value):
+    client = modbus_client
     command = f'{param} {value}\n'
     logging.debug(f'Command: {command}')
     # ser_controller.write(command.encode())
+    d1 = 3
+    d2 = 4
+    if param == 1:
+        # set motor mode (position, speed, torque control)
+        mode_input = int(value)
+        if mode_input == 0:
+            motor_set_mode = Motor_Mode.POSITION_MODE.value
+        elif mode_input == 1:
+            motor_set_mode = Motor_Mode.SPEED_MODE.value
+        elif mode_input == 2:
+            motor_set_mode = Motor_Mode.TORQUE_MODE.value
+        elif mode_input == 3:
+            motor_set_mode = Motor_Mode.HOME_MODE.value
+        else:
+            motor_set_mode = Motor_Mode.POSITION_MODE.value
+        print(f'Motor Mode input: {motor_set_mode}')
+        lfast_drive_interface.set_motor_mode(client, d1, motor_set_mode)
+        lfast_drive_interface.set_motor_mode(client, d2, motor_set_mode)
+    elif param == 2:
+        # set motor state (disable, enable, e-stop, power on)
+        state_input = int(value)
+        if state_input == 0:
+            motor_set_state = Motor_State.DISABLED.value
+        elif state_input == 1:
+            motor_set_state = Motor_State.ENABLED.value
+        elif state_input == 2:
+            motor_set_state = Motor_State.POWER_ON.value
+        elif state_input == 3:
+            motor_set_state = Motor_State.E_STOP.value
+        else:
+            motor_set_state = Motor_State.DISABLED.value
+        print(f'Motor State input: {motor_set_state}')
+        lfast_drive_interface.set_motor_state(client, d1, motor_set_state)
+        lfast_drive_interface.set_motor_state(client, d2, motor_set_state)
+    elif param == 3:
+        # set target speed
+        motor_target_speed = value
+        lfast_drive_interface.set_velocity_setpoint(client, d1, motor_target_speed)
+        lfast_drive_interface.set_velocity_setpoint(client, d2, (motor_target_speed * -1 ))
+        print(f'Target speed: {motor_target_speed}')
+    elif param == 4:
+        # set target torque
+        motor_target_torque = value
+        print(f'Target torque: {motor_target_torque}')
+        lfast_drive_interface.set_torque_setpoint(client, d1, motor_target_torque)
+        lfast_drive_interface.set_torque_setpoint(client, d2, (motor_target_torque * -1))
+    elif param == 6:
+        # set max speed
+        pass
 
 
 if(controller_found):
@@ -240,4 +319,5 @@ if(controller_found):
     mainWindow.show()
     exitCode = app.exec()
     closeThread = True
+    lfast_drive_interface.stop_client( modbus_client )
     sys.exit( exitCode )
