@@ -15,8 +15,6 @@ logging.basicConfig(
 
 
 APP_VERSION = 0.1
-MIN_DAC_VOLTAGE = 0
-MAX_DAC_VOLTAGE = 5
 
 CONTROLLER_PORT = 'COM3'
 
@@ -32,83 +30,88 @@ except Exception as e:
     sys.exit( 1 )
 
 
-class StepperController():
+class MountInterface():
     def __init__(self):
         self.mode = 0
-        self.step_angle = 0
-        self.step_direction = 0
-        self.step_speed = 0
-        self.stop_mode = 0
+        self.speed_setpoint = 0
+        self.torque_setpoint = 0
+        self.max_speed = 0
+        self.control_word = 0
 
     def set_param(self, param, value):
         if(param == 'm'):
             self.mode = value
             serialCommand(0, value)
-        elif(param == 'a'):
-            self.step_angle = value
-            serialCommand(1, value)
-        elif(param == 'd'):
-            self.step_direction = value
-            serialCommand(2, value)
         elif(param == 's'):
-            self.step_speed = value
+            self.speed_setpoint = value
+            # serialCommand(1, value)
+        elif(param == 't'):
+            self.torque_setpoint = value
+            # serialCommand(2, value)
+        elif(param == 'x'):
+            self.max_speed = value
             serialCommand(3, value)
-        elif(param == 'p'):
-            self.stop_mode = value
+        elif(param == 'c'):
+            self.control_word = value
             serialCommand(4, value)
 
+    def update_speed_setpoint(self, direction):
+        pass
 
-stepper = StepperController()
-
-def directionHandler():
-    if(dirCWButton.isChecked()):
-        logging.debug('CW')
-        stepper.set_param('d', 0)
-    elif(dirCCWButton.isChecked()):
-        logging.debug('CCW')
-        stepper.set_param('d', 1)
+    def update_target_setpoint(self, direction):
+        pass
 
 
-def stepHandler():
-    if(stepFullButton.isChecked()):
-        logging.debug('Full step')
-        stepper.set_param('a', 0)
-    elif(stepHalfButton.isChecked()):
-        logging.debug('Half step')
-        stepper.set_param('a', 1)
+mount = MountInterface()
 
 
 def modeHandler():
-    if(modeIdleButton.isChecked()):
-        logging.debug('Idle')
-        stepper.set_param('m', 0)
-    elif(modeStepButton.isChecked()):
-        logging.debug('Step')
-        stepper.set_param('m', 1)
-    elif(modeSlewButton.isChecked()):
-        logging.debug('Slew')
-        stepper.set_param('m', 2)
+    if(modeSpeedButton.isChecked()):
+        logging.debug('Set mode to Speed Control')
+        mount.set_param('m', 0)
+    elif(modeTorqueButton.isChecked()):
+        logging.debug('Set mode to Torque Control')
+        mount.set_param('m', 1)
 
 
 def speedHandler():
     speed_value = int(setSpeedInput.text())
-    logging.debug(f'Speed button press: {speed_value}')
-    stepper.set_param('s', speed_value)
+    logging.debug(f'Set speed setpoint to: {speed_value}')
+    mount.set_param('s', speed_value)
 
 
-def stepsHandler():
-    steps_value = int(setStepsInput.text())
-    logging.debug(f'Steps button press: {steps_value}')
-    serialCommand(5, steps_value)
+def torqueHandler():
+    torque_value = int(setTorqueInput.text())
+    logging.debug(f'Set torque setpoint to: {torque_value}')
+    mount.set_param('t', torque_value)
 
 
-def stopHandler():
-    if(stopSoftButton.isChecked()):
-        logging.debug('Soft stop')
-        stepper.set_param('p', 0)
-    elif(stopHardButton.isChecked()):
-        logging.debug('Hard stop')
-        stepper.set_param('p', 1)
+def maxSpeedHandler():
+    max_speed_value = int(setMaxSpeedInput.text())
+    logging.debug(f'Set Max Speed to: {max_speed_value}')
+    mount.set_param('x', max_speed_value)
+
+
+def upPressHandler():
+    logging.debug(f'Up Button pressed')
+    mount.update_speed_setpoint('u')
+    mount.set_param('c', 0)
+
+
+def downPressHandler():
+    logging.debug(f'Down Button pressed')
+    mount.update_speed_setpoint('d')
+    mount.set_param('c', 0)
+
+
+def upReleaseHandler():
+    logging.debug(f'Up Button released')
+    mount.set_param('s', 0)
+
+
+def downReleaseHandler():
+    logging.debug(f'Down Button released')
+    mount.set_param('s', 0)
 
 
 def serialCommand(param, value):
@@ -117,12 +120,11 @@ def serialCommand(param, value):
     # ser_controller.write(command.encode())
 
 
-
 if(controller_found):
     # Set up and run the GUI
     app = QApplication([])
     mainWindow = QMainWindow()
-    mainWindow.setWindowTitle( f'Stepper controller GUI v{APP_VERSION}' )
+    mainWindow.setWindowTitle( f'Mount Elevation GUI v{APP_VERSION}' )
     #mainWindow.resize(800,600)
 
     window = QWidget()
@@ -136,78 +138,27 @@ if(controller_found):
     configLabel.setStyleSheet("font-weight: bold; text-decoration: underline; font-size: 20;")
 
     # Controls to select the mode
-    setModeLabel = QLabel(f"Select mode to use")
+    setModeLabel = QLabel(f"Servo Drive Mode:")
     modeRadio = QWidget()
     modeRadioLayout = QGridLayout()
     modeRadio.setLayout(modeRadioLayout)
-    modeIdleButton = QRadioButton("Idle")
-    modeStepButton = QRadioButton("Step")
-    modeSlewButton = QRadioButton("Slew")
+    modeSpeedButton = QRadioButton("Speed Control")
+    modeTorqueButton = QRadioButton("Torque Control")
 
-    modeIdleButton.toggled.connect(modeHandler)
-    modeStepButton.toggled.connect(modeHandler)
-    modeSlewButton.toggled.connect(modeHandler)
+    modeSpeedButton.toggled.connect(modeHandler)
+    modeTorqueButton.toggled.connect(modeHandler)
 
 
-    modeRadioLayout.addWidget(modeIdleButton,  0, 0)
-    modeRadioLayout.addWidget(modeStepButton,  0, 1)
-    modeRadioLayout.addWidget(modeSlewButton,  0, 2)
-    modeIdleButton.setChecked(True) #default
-
-
-    # Controls to select the step size
-    setStepLabel = QLabel(f"Select step size to use")
-    stepRadio = QWidget()
-    stepRadioLayout = QGridLayout()
-    stepRadio.setLayout(stepRadioLayout)
-    stepFullButton = QRadioButton("Full step")
-    stepHalfButton = QRadioButton("Half step")
-
-    stepFullButton.toggled.connect(stepHandler)
-    stepHalfButton.toggled.connect(stepHandler)
-
-    stepRadioLayout.addWidget(stepFullButton,  0, 0)
-    stepRadioLayout.addWidget(stepHalfButton,  0, 1)
-    stepFullButton.setChecked(True) #default
-
-
-    # Controls to select the direction
-    setDirLabel = QLabel(f"Select motion direction")
-    dirRadio = QWidget()
-    dirRadioLayout = QGridLayout()
-    dirRadio.setLayout(dirRadioLayout)
-    dirCWButton = QRadioButton("CW")
-    dirCCWButton = QRadioButton("CCW")
-
-    dirCWButton.toggled.connect(directionHandler)
-    dirCCWButton.toggled.connect(directionHandler)
-
-    dirRadioLayout.addWidget(dirCWButton,  0, 0)
-    dirRadioLayout.addWidget(dirCCWButton,  0, 1)
-    dirCWButton.setChecked(True) #default
-
-
-    # Controls to select the stop mode
-    setStopLabel = QLabel(f"Select stopping mode")
-    stopRadio = QWidget()
-    stopRadioLayout = QGridLayout()
-    stopRadio.setLayout(stopRadioLayout)
-    stopSoftButton = QRadioButton("Soft stop")
-    stopHardButton = QRadioButton("Hard stop")
-
-    stopSoftButton.toggled.connect(stopHandler)
-    stopHardButton.toggled.connect(stopHandler)
-
-    stopRadioLayout.addWidget(stopSoftButton,  0, 0)
-    stopRadioLayout.addWidget(stopHardButton,  0, 1)
-    stopSoftButton.setChecked(True) #default
+    modeRadioLayout.addWidget(modeSpeedButton,  0, 0)
+    modeRadioLayout.addWidget(modeTorqueButton,  0, 1)
+    modeSpeedButton.setChecked(True) #default
 
 
     # Label
-    speedLabel = QLabel("For use in all modes:")
+    speedLabel = QLabel("For use in speed control mode:")
     speedLabel.setStyleSheet("font-weight: bold; text-decoration: underline; font-size: 20;")
 
-    setSpeedLabel = QLabel(f"Motor speed in steps/sec")
+    setSpeedLabel = QLabel(f"Motor RPM")
     setSpeedControls = QWidget()
     hBoxLayout = QHBoxLayout()
     setSpeedControls.setLayout(hBoxLayout)
@@ -222,38 +173,67 @@ if(controller_found):
 
 
     # Label
-    stepsLabel = QLabel("For use in the Step mode:")
+    stepsLabel = QLabel("For use in the torque control mode:")
     stepsLabel.setStyleSheet("font-weight: bold; text-decoration: underline; font-size: 20;")
 
-    setStepsLabel = QLabel(f"Number of steps")
-    setStepsControls = QWidget()
+    setTorqueLabel = QLabel(f"Torque (%)")
+    setTorqueControls = QWidget()
     hBoxLayout = QHBoxLayout()
-    setStepsControls.setLayout(hBoxLayout)
-    setStepsInput = QLineEdit("1")
+    setTorqueControls.setLayout(hBoxLayout)
+    setTorqueInput = QLineEdit("50")
     onlyInt = QIntValidator()
-    setStepsInput.setValidator(onlyInt)
-    setStepsButton = QPushButton("Set Steps")
-    setStepsButton.clicked.connect(stepsHandler)
-    hBoxLayout.addWidget(setStepsLabel)
-    hBoxLayout.addWidget(setStepsInput)
-    hBoxLayout.addWidget(setStepsButton)
+    setTorqueInput.setValidator(onlyInt)
+    setTorqueButton = QPushButton("Set torque")
+    setTorqueButton.clicked.connect(torqueHandler)
+    hBoxLayout.addWidget(setTorqueLabel)
+    hBoxLayout.addWidget(setTorqueInput)
+    hBoxLayout.addWidget(setTorqueButton)
+
+
+    setMaxSpeedLabel = QLabel(f"Max Speed")
+    setMaxSpeedControls = QWidget()
+    hBoxLayout = QHBoxLayout()
+    setMaxSpeedControls.setLayout(hBoxLayout)
+    setMaxSpeedInput = QLineEdit("1000")
+    onlyInt = QIntValidator()
+    setMaxSpeedInput.setValidator(onlyInt)
+    setMaxSpeedButton = QPushButton("Set Max Speed")
+    setMaxSpeedButton.clicked.connect(maxSpeedHandler)
+    hBoxLayout.addWidget(setMaxSpeedLabel)
+    hBoxLayout.addWidget(setMaxSpeedInput)
+    hBoxLayout.addWidget(setMaxSpeedButton)
+
+    directionLabel = QLabel("Direction:")
+    directionLabel.setStyleSheet("font-weight: bold; text-decoration: underline; font-size: 20;")
+
+    dirUpButton = QPushButton("Go Up")
+    dirUpButton.pressed.connect(upPressHandler)
+    dirUpButton.released.connect(upReleaseHandler)
+    # hBoxLayout.addWidget(dirCWButton)
+
+    dirDownButton = QPushButton("Go Down")
+    # dirDownButton.clicked.connect(speedHandler)
+    dirDownButton.pressed.connect(downPressHandler)
+    dirDownButton.released.connect(downReleaseHandler)
+    # hBoxLayout.addWidget(dirCCWButton)
 
 
     vBoxLayout.addWidget(configLabel)
     vBoxLayout.addWidget(setModeLabel)
     vBoxLayout.addWidget(modeRadio)
-    vBoxLayout.addWidget(setStepLabel)
-    vBoxLayout.addWidget(stepRadio)
-    vBoxLayout.addWidget(setDirLabel)
-    vBoxLayout.addWidget(dirRadio)
-    vBoxLayout.addWidget(setStopLabel)
-    vBoxLayout.addWidget(stopRadio)
+
 
 
     vBoxLayout.addWidget(speedLabel)
     vBoxLayout.addWidget(setSpeedControls)
     vBoxLayout.addWidget(stepsLabel)
-    vBoxLayout.addWidget(setStepsControls)
+    vBoxLayout.addWidget(setTorqueControls)
+
+    vBoxLayout.addWidget(setMaxSpeedControls)
+
+    vBoxLayout.addWidget(directionLabel)
+    vBoxLayout.addWidget(dirUpButton)
+    vBoxLayout.addWidget(dirDownButton)
 
 
     # Run the GUI
