@@ -24,9 +24,13 @@ controller_found = True
 try:
     # ser_controller = serial.Serial(CONTROLLER_PORT, 57600, timeout=0)
     modbus_client = lfast_drive_interface.start_client()
-    time.sleep(5)
-    logging.info(f'Port {SERIAL_ADAPTER_PORT} opened succesfully.')
+    time.sleep(2)
     controller_found = True
+    controller_found = modbus_client.is_socket_open()
+    assert(controller_found)
+    # if not controller_found:
+    #     raise ValueError('Could not initialize Modbus client')
+    logging.info(f'Port {SERIAL_ADAPTER_PORT} opened succesfully.')
 except Exception as e:
     logging.warning(f'Error occurred while opening serial port.\nException: {e}')
     controller_found = False
@@ -280,19 +284,21 @@ if(controller_found):
     setMaxSpeedInput.setValidator(onlyInt)
     setMaxSpeedButton = QPushButton("Set Max Speed")
     setMaxSpeedButton.clicked.connect(maxSpeedHandler)
-    hBoxLayout.addWidget(setMaxSpeedLabel)
-    hBoxLayout.addWidget(setMaxSpeedInput)
-    hBoxLayout.addWidget(setMaxSpeedButton)
+    # hBoxLayout.addWidget(setMaxSpeedLabel)
+    # hBoxLayout.addWidget(setMaxSpeedInput)
+    # hBoxLayout.addWidget(setMaxSpeedButton)
 
     directionLabel = QLabel("Direction:")
     directionLabel.setStyleSheet("font-weight: bold; text-decoration: underline; font-size: 20;")
 
-    dirUpButton = QPushButton("Go Up")
+    dirUpButton = QPushButton("UP")
+    dirUpButton.setMinimumHeight(80)
     dirUpButton.pressed.connect(upPressHandler)
     dirUpButton.released.connect(upReleaseHandler)
     # hBoxLayout.addWidget(dirCWButton)
 
-    dirDownButton = QPushButton("Go Down")
+    dirDownButton = QPushButton("DOWN")
+    dirDownButton.setMinimumHeight(80)
     # dirDownButton.clicked.connect(speedHandler)
     dirDownButton.pressed.connect(downPressHandler)
     dirDownButton.released.connect(downReleaseHandler)
