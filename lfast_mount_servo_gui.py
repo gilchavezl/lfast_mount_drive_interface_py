@@ -80,7 +80,7 @@ class MountInterface():
         elif(direction == 'i'):
             pass
 
-    def update_target_setpoint(self, direction):
+    def update_torque_setpoint(self, direction):
         if(direction == 'u'):
             torque = self.torque_setpoint
             driveCommand(4, torque)
@@ -124,12 +124,14 @@ def maxSpeedHandler():
 def upPressHandler():
     logging.debug(f'\nUP BUTTON PRESSED\n')
     mount.update_speed_setpoint('u')
+    mount.update_torque_setpoint('u')
     mount.set_param('c', 2)
 
 
 def downPressHandler():
     logging.debug(f'Down Button pressed')
     mount.update_speed_setpoint('d')
+    mount.update_torque_setpoint('d')
     mount.set_param('c', 2)
 
 
