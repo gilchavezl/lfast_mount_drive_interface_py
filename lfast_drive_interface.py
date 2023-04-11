@@ -16,7 +16,9 @@ from pymodbus.client.sync import ModbusSerialClient
 #     ModbusTlsFramer
 # )
 
+# USE COM5 FOR LFAST LAPTOP BUILD
 DRIVER_PORT = 'COM5'
+# DRIVER_PORT = 'COM3'
 # DRIVER_PORT = 'COM9'
 DRIVER_BAUDRATE = 19200
 # DRIVER_BAUDRATE = 38400
