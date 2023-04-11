@@ -18,7 +18,7 @@ logging.basicConfig(
 
 APP_VERSION = 0.1
 
-SERIAL_ADAPTER_PORT = 'COM5'
+# SERIAL_ADAPTER_PORT = 'COM5'
 
 controller_found = True
 try:
@@ -30,7 +30,7 @@ try:
     assert(controller_found)
     # if not controller_found:
     #     raise ValueError('Could not initialize Modbus client')
-    logging.info(f'Port {SERIAL_ADAPTER_PORT} opened succesfully.')
+    logging.info(f'Port {lfast_drive_interface.DRIVER_PORT} opened succesfully.')
 except Exception as e:
     logging.warning(f'Error occurred while opening serial port.\nException: {e}')
     controller_found = False
@@ -59,38 +59,44 @@ class MountInterface():
         self.max_speed = 0
         self.control_word = 0
 
-    def set_param(self, param, value):
+    def set_param(self, param, value, axis=''):
         if(param == 'm'):
             self.mode = value
-            driveCommand(1, value)
+            driveCommand(1, value, 'az')
+            driveCommand(1, value, 'el')
         elif(param == 's'):
             self.speed_setpoint = value
         elif(param == 't'):
             self.torque_setpoint = value
         elif(param == 'x'):
             self.max_speed = value
-            driveCommand(6, value)
+            driveCommand(6, value, 'az')
+            driveCommand(6, value, 'el')
         elif(param == 'c'):
             self.control_word = value
-            driveCommand(2, value)
+            driveCommand(2, value, axis)
 
     def update_speed_setpoint(self, direction):
         if(direction == 'u'):
             speed = self.speed_setpoint
-            driveCommand(3, speed)
+            driveCommand(3, speed, 'az')
+            driveCommand(3, speed, 'el')
         elif(direction == 'd'):
             speed = self.speed_setpoint * -1
-            driveCommand(3, speed)
+            driveCommand(3, speed, 'az')
+            driveCommand(3, speed, 'el')
         elif(direction == 'i'):
             pass
 
     def update_torque_setpoint(self, direction):
         if(direction == 'u'):
             torque = self.torque_setpoint
-            driveCommand(4, torque)
+            driveCommand(4, torque, 'az')
+            driveCommand(4, torque, 'el')
         elif(direction == 'd'):
             torque = self.torque_setpoint * -1
-            driveCommand(4, torque)
+            driveCommand(4, torque, 'az')
+            driveCommand(4, torque, 'el')
         elif(direction == 'i'):
             pass
 
@@ -129,33 +135,68 @@ def upPressHandler():
     logging.debug(f'\nUP BUTTON PRESSED\n')
     mount.update_speed_setpoint('u')
     mount.update_torque_setpoint('u')
-    mount.set_param('c', 2)
+    mount.set_param('c', 2, 'el')
 
 
 def downPressHandler():
     logging.debug(f'Down Button pressed')
     mount.update_speed_setpoint('d')
     mount.update_torque_setpoint('d')
-    mount.set_param('c', 2)
+    mount.set_param('c', 2, 'el')
 
 
 def upReleaseHandler():
     logging.debug(f'\nUP BUTTON RELEASED\n')
-    mount.set_param('c', 1)
+    mount.set_param('c', 1, 'el')
 
 
 def downReleaseHandler():
     logging.debug(f'Down Button released')
-    mount.set_param('c', 1)
+    mount.set_param('c', 1, 'el')
 
 
-def driveCommand(param, value):
+def ccwPressHandler():
+    logging.debug(f'\nCCW BUTTON PRESSED\n')
+    mount.update_speed_setpoint('u')
+    mount.update_torque_setpoint('u')
+    mount.set_param('c', 2, 'az')
+
+
+def cwPressHandler():
+    logging.debug(f'CW Button pressed')
+    mount.update_speed_setpoint('d')
+    mount.update_torque_setpoint('d')
+    mount.set_param('c', 2, 'az')
+
+
+def ccwReleaseHandler():
+    logging.debug(f'\nCCW BUTTON RELEASED\n')
+    mount.set_param('c', 1, 'az')
+
+
+def cwReleaseHandler():
+    logging.debug(f'CW Button released')
+    mount.set_param('c', 1, 'az')
+
+
+def driveCommand(param, value, axis):
+    # axis = 'el'
+    d_az_a = 1
+    d_az_b = 2
+    d_el_a = 3
+    d_el_b = 4
     client = modbus_client
-    command = f'{param} {value}\n'
+    command = f'{axis} {param} {value}\n'
     logging.debug(f'Command: {command}')
     # ser_controller.write(command.encode())
-    d1 = 3
-    d2 = 4
+    if( axis == 'az' ):
+        d1 = d_az_a
+        d2 = d_az_b
+    elif( axis == 'el' ):
+        d1 = d_el_a
+        d2 = d_el_b
+    else:
+        logging.warning(f'Invalid axis command.')
     if param == 1:
         # set motor mode (position, speed, torque control)
         mode_input = int(value)
@@ -288,20 +329,37 @@ if(controller_found):
     # hBoxLayout.addWidget(setMaxSpeedInput)
     # hBoxLayout.addWidget(setMaxSpeedButton)
 
-    directionLabel = QLabel("Direction:")
-    directionLabel.setStyleSheet("font-weight: bold; text-decoration: underline; font-size: 20;")
+    elDirectionLabel = QLabel("Elevation Direction:")
+    elDirectionLabel.setStyleSheet("font-weight: bold; text-decoration: underline; font-size: 20;")
 
-    dirUpButton = QPushButton("UP")
-    dirUpButton.setMinimumHeight(80)
-    dirUpButton.pressed.connect(upPressHandler)
-    dirUpButton.released.connect(upReleaseHandler)
+    dirElUpButton = QPushButton("UP")
+    dirElUpButton.setMinimumHeight(80)
+    dirElUpButton.pressed.connect(upPressHandler)
+    dirElUpButton.released.connect(upReleaseHandler)
     # hBoxLayout.addWidget(dirCWButton)
 
-    dirDownButton = QPushButton("DOWN")
-    dirDownButton.setMinimumHeight(80)
+    dirElDownButton = QPushButton("DOWN")
+    dirElDownButton.setMinimumHeight(80)
     # dirDownButton.clicked.connect(speedHandler)
-    dirDownButton.pressed.connect(downPressHandler)
-    dirDownButton.released.connect(downReleaseHandler)
+    dirElDownButton.pressed.connect(downPressHandler)
+    dirElDownButton.released.connect(downReleaseHandler)
+    # hBoxLayout.addWidget(dirCCWButton)
+
+
+    azDirectionLabel = QLabel("Azimuth Direction:")
+    azDirectionLabel.setStyleSheet("font-weight: bold; text-decoration: underline; font-size: 20;")
+
+    dirAzCCWButton = QPushButton("CCW")
+    dirAzCCWButton.setMinimumHeight(80)
+    dirAzCCWButton.pressed.connect(ccwPressHandler)
+    dirAzCCWButton.released.connect(ccwReleaseHandler)
+    # hBoxLayout.addWidget(dirCWButton)
+
+    dirAzCWButton = QPushButton("CW")
+    dirAzCWButton.setMinimumHeight(80)
+    # dirDownButton.clicked.connect(speedHandler)
+    dirAzCWButton.pressed.connect(cwPressHandler)
+    dirAzCWButton.released.connect(cwReleaseHandler)
     # hBoxLayout.addWidget(dirCCWButton)
 
 
@@ -318,10 +376,13 @@ if(controller_found):
 
     vBoxLayout.addWidget(setMaxSpeedControls)
 
-    vBoxLayout.addWidget(directionLabel)
-    vBoxLayout.addWidget(dirUpButton)
-    vBoxLayout.addWidget(dirDownButton)
+    vBoxLayout.addWidget(elDirectionLabel)
+    vBoxLayout.addWidget(dirElUpButton)
+    vBoxLayout.addWidget(dirElDownButton)
 
+    vBoxLayout.addWidget(azDirectionLabel)
+    vBoxLayout.addWidget(dirAzCCWButton)
+    vBoxLayout.addWidget(dirAzCWButton)
 
     # Run the GUI
     mainWindow.show()
